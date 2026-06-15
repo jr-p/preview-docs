@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>PreviewDocs</string>
+    <key>CFBundleDisplayName</key>
+    <string>PreviewDocs</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.jrp.previewdocs</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleExecutable</key>
+    <string>PreviewDocs</string>
+    <key>CFBundleIconFile</key>
+    <string>PreviewDocs</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+    <key>NSQuitAlwaysKeepsWindows</key>
+    <false/>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <!-- Markdown -->
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Markdown File</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>md</string>
+                <string>markdown</string>
+                <string>mdown</string>
+                <string>mkd</string>
+            </array>
+        </dict>
+        <!-- HTML -->
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>HTML File</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>html</string>
+                <string>htm</string>
+            </array>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.html</string>
+            </array>
+        </dict>
+        <!-- PDF -->
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>PDF Document</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>pdf</string>
+            </array>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>com.adobe.pdf</string>
+            </array>
+        </dict>
+        <!-- Images -->
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Image File</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>png</string>
+                <string>jpg</string>
+                <string>jpeg</string>
+                <string>gif</string>
+                <string>webp</string>
+                <string>svg</string>
+                <string>bmp</string>
+                <string>tif</string>
+                <string>tiff</string>
+                <string>heic</string>
+                <string>heif</string>
+                <string>ico</string>
+            </array>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.image</string>
+            </array>
+        </dict>
+        <!-- Plain text -->
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Plain Text</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>txt</string>
+                <string>text</string>
+            </array>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.plain-text</string>
+            </array>
+        </dict>
+        <!-- Source / data files -->
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Source Code / Data</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>json</string>
+                <string>yaml</string>
+                <string>yml</string>
+                <string>toml</string>
+                <string>css</string>
+                <string>js</string>
+                <string>ts</string>
+                <string>tsx</string>
+                <string>jsx</string>
+                <string>py</string>
+                <string>rb</string>
+                <string>sh</string>
+                <string>bash</string>
+                <string>zsh</string>
+                <string>swift</string>
+                <string>go</string>
+                <string>rs</string>
+                <string>c</string>
+                <string>h</string>
+                <string>cpp</string>
+                <string>xml</string>
+                <string>csv</string>
+                <string>log</string>
+                <string>env</string>
+                <string>conf</string>
+                <string>ini</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>
