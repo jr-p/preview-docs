@@ -22,7 +22,7 @@ viewer without requiring an Xcode project.
 
 | Type | Extensions | Rendering |
 | --- | --- | --- |
-| Markdown | `.md`, `.markdown`, `.mdown`, `.mkd` | `marked.min.js` to HTML |
+| Markdown | `.md`, `.markdown`, `.mdown`, `.mkd` | `marked.min.js` to HTML, with Mermaid diagrams rendered by `mermaid.min.js` |
 | HTML | `.html`, `.htm` | Native `WKWebView` |
 | PDF | `.pdf` | Native `WKWebView` |
 | Images | `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg`, `.bmp`, `.tif`, `.tiff`, `.heic`, `.heif`, `.ico` | Native `WKWebView` |
@@ -41,7 +41,7 @@ viewer without requiring an Xcode project.
 ```
 
 The build script creates `PreviewDocs.app` in the project root.
-If `Resources/marked.min.js` is missing, the script downloads it from jsDelivr.
+If `Resources/marked.min.js` or `Resources/mermaid.min.js` is missing, the script downloads it from jsDelivr.
 
 ## Run
 
@@ -118,6 +118,7 @@ Resources/
   Info.plist
   PreviewDocs.icns
   marked.min.js
+  mermaid.min.js
 build.sh
 install.sh
 ```

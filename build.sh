@@ -13,6 +13,12 @@ if [ ! -f "Resources/marked.min.js" ]; then
         "https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"
 fi
 
+if [ ! -f "Resources/mermaid.min.js" ]; then
+    echo "Downloading mermaid.min.js..."
+    curl -s -L -o Resources/mermaid.min.js \
+        "https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"
+fi
+
 echo "Compiling ${APP_NAME}..."
 swiftc \
     -sdk "$SDK" \
@@ -30,6 +36,7 @@ mkdir -p "${BUNDLE}/Contents/Resources"
 cp "${APP_NAME}"            "${BUNDLE}/Contents/MacOS/"
 cp Resources/Info.plist     "${BUNDLE}/Contents/"
 cp Resources/marked.min.js  "${BUNDLE}/Contents/Resources/"
+cp Resources/mermaid.min.js "${BUNDLE}/Contents/Resources/"
 cp Resources/PreviewDocs.icns "${BUNDLE}/Contents/Resources/"
 
 rm "${APP_NAME}"

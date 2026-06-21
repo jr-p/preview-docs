@@ -193,6 +193,7 @@ class PreviewViewController: NSViewController, WKNavigationDelegate, NSTextViewD
             loadEditableText()
             return
         }
+        let mermaidJS = loadBundledResource("mermaid.min.js") ?? ""
 
         let jsonEncoded: String
         if let data = try? JSONEncoder().encode(markdown),
@@ -215,9 +216,44 @@ class PreviewViewController: NSViewController, WKNavigationDelegate, NSTextViewD
         <body>
         <div id="content"></div>
         <script>\(markedJS)</script>
+        <script>\(mermaidJS)</script>
         <script>
         const raw = \(jsonEncoded);
-        document.getElementById('content').innerHTML = marked.parse(raw);
+        const content = document.getElementById('content');
+        const renderer = new marked.Renderer();
+
+        function escapeHTML(value) {
+            return value.replace(/[&<>"']/g, (character) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[character]);
+        }
+
+        renderer.code = function(code, language) {
+            const normalizedLanguage = (language || '').trim().split(/\\s+/)[0].toLowerCase();
+            if (normalizedLanguage === 'mermaid') {
+                return '<div class="mermaid">' + escapeHTML(code) + '</div>';
+            }
+            return false;
+        };
+
+        marked.use({ renderer });
+        content.innerHTML = marked.parse(raw);
+
+        if (window.mermaid) {
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: prefersDark ? 'dark' : 'default',
+                securityLevel: 'strict'
+            });
+            mermaid.run({ querySelector: '.mermaid' }).catch((error) => {
+                console.error('Could not render Mermaid diagram', error);
+            });
+        }
         </script>
         </body>
         </html>
@@ -364,6 +400,15 @@ class PreviewViewController: NSViewController, WKNavigationDelegate, NSTextViewD
         a { color: var(--link); text-decoration: none; }
         a:hover { text-decoration: underline; }
         img { max-width: 100%; border-radius: 4px; }
+        .mermaid {
+            margin: 1.5em 0;
+            overflow-x: auto;
+            text-align: center;
+        }
+        .mermaid svg {
+            max-width: 100%;
+            height: auto;
+        }
         table { border-collapse: collapse; width: 100%; margin: 1em 0; }
         th, td { border: 1px solid var(--tbl-bd); padding: 8px 12px; text-align: left; }
         th { background: var(--th-bg); font-weight: 600; }
