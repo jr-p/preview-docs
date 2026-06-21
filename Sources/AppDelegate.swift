@@ -70,7 +70,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    func openFile(at url: URL) {
+    func openFile(at url: URL, sidebarRootURL: URL? = nil) {
         // Deduplicate: if already open, just focus that window
         let resolved = url.resolvingSymlinksInPath()
         if let existing = openControllers.first(where: {
@@ -81,7 +81,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         dbg("[AppDelegate] openFile(at:) \(url.path)")
         let tabHost = openControllers.first
-        let wc = PreviewWindowController(fileURL: url)
+        let wc = PreviewWindowController(fileURL: url, sidebarRootURL: sidebarRootURL)
         openControllers.append(wc)
         NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
@@ -115,6 +115,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
+        panel.showsHiddenFiles = true
         panel.title = "Open File"
         if panel.runModal() == .OK {
             panel.urls.forEach { openFile(at: $0) }

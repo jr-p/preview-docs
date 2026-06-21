@@ -10,6 +10,10 @@ viewer without requiring an Xcode project.
 - HTML, PDF, and image preview through WebKit
 - Source and data files displayed as plain monospaced text
 - Multiple files open as macOS window tabs
+- Open dialog shows dotfiles and hidden folders
+- Right sidebar file tree rooted at your home folder, with lazy folder loading
+- Sidebar actions for creating files/folders, renaming items, editing ignore rules, and opening files in the current preview or a new tab
+- UTF-8 text editing with explicit save and unsaved-change prompts
 - Toolbar actions for copying the file path, copying text contents, revealing in Finder, and refreshing
 - Light and dark mode styling for rendered Markdown and text views
 - File type registration through the app bundle `Info.plist`
@@ -56,6 +60,34 @@ open -n -a PreviewDocs.app file.md file.pdf image.png
 
 When multiple files are opened, PreviewDocs adds them as tabs in the same window group.
 
+## Sidebar and Ignore Rules
+
+The right sidebar starts at your home folder and loads folder contents only when
+you expand a folder. `Reveal in Tree` switches the sidebar root to the current
+file's parent directory. The bottom path bar shows that directory path, and
+clicking a directory in the path bar moves the tree root there. Hidden files and
+folders are shown, but common heavy folders are excluded by default:
+
+```text
+.git
+node_modules
+.build
+DerivedData
+.DS_Store
+*.app
+```
+
+To customize the tree, edit `~/.previewdocs-ignore`. Use one filename or `*`
+wildcard pattern per line. Blank lines and lines starting with `#` are ignored.
+The sidebar's ignore-rules button creates and opens this file if it does not
+exist.
+
+Click a file in the sidebar to open it in the current preview. Option-click a
+file to open it as a new tab; the new tab starts with the same sidebar root.
+The sidebar toolbar only controls the tree itself: reload tree, new file, new
+folder, and ignore rules. Text-readable files are editable in place and must be
+saved explicitly.
+
 ## Install
 
 ```bash
@@ -78,6 +110,7 @@ To set PreviewDocs as the default app for a file type:
 Sources/
   main.swift
   AppDelegate.swift
+  FileTreeSidebarViewController.swift
   PreviewWindowController.swift
   PreviewViewController.swift
   PreviewWebView.swift

@@ -6,11 +6,30 @@ enum MarkdownViewMode {
     case source
 }
 
-class PreviewViewController: NSViewController, WKNavigationDelegate {
+protocol PreviewViewControllerDelegate: AnyObject {
+    func previewViewControllerDidChangeFile(_ controller: PreviewViewController)
+    func previewViewControllerDidChangeDirtyState(_ controller: PreviewViewController)
+}
 
-    let fileURL: URL
+class PreviewViewController: NSViewController, WKNavigationDelegate, NSTextViewDelegate {
+
+    private(set) var fileURL: URL
+    weak var delegate: PreviewViewControllerDelegate?
+
     private var webView: PreviewWebView!
+    private var textScrollView: NSScrollView!
+    private var textView: NSTextView!
     private var markdownViewMode: MarkdownViewMode = .preview
+    private var loadingText = false
+    private var editableTextLoaded = false
+
+    private(set) var hasUnsavedChanges = false {
+        didSet {
+            if oldValue != hasUnsavedChanges {
+                delegate?.previewViewControllerDidChangeDirtyState(self)
+            }
+        }
+    }
 
     init(fileURL: URL) {
         self.fileURL = fileURL
@@ -20,33 +39,72 @@ class PreviewViewController: NSViewController, WKNavigationDelegate {
     required init?(coder: NSCoder) { fatalError() }
 
     override func loadView() {
-        // Use a plain NSView first; WKWebView is created lazily in viewDidAppear
-        // to avoid re-entrant run-loop issues during window initialization.
         view = NSView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
     }
 
     override func viewDidAppear() {
         super.viewDidAppear()
         guard webView == nil else { return }
-        setupWebView()
+        setupViews()
         loadFile()
     }
 
-    private func setupWebView() {
+    private func setupViews() {
         let config = WKWebViewConfiguration()
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
         let wv = PreviewWebView(frame: view.bounds, configuration: config)
         wv.translatesAutoresizingMaskIntoConstraints = false
         wv.navigationDelegate = self
         wv.allowsMagnification = true
+
+        let scrollView = NSScrollView(frame: view.bounds)
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = true
+        scrollView.autohidesScrollers = false
+        let tv = NSTextView(frame: scrollView.bounds)
+        tv.autoresizingMask = [.width]
+        tv.isRichText = false
+        tv.isAutomaticQuoteSubstitutionEnabled = false
+        tv.isAutomaticDashSubstitutionEnabled = false
+        tv.isAutomaticTextReplacementEnabled = false
+        tv.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        tv.textContainerInset = NSSize(width: 12, height: 12)
+        tv.minSize = NSSize(width: 0, height: scrollView.contentSize.height)
+        tv.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        tv.isVerticallyResizable = true
+        tv.isHorizontallyResizable = true
+        tv.textContainer?.widthTracksTextView = false
+        tv.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        tv.delegate = self
+        scrollView.documentView = tv
+
         view.addSubview(wv)
+        view.addSubview(scrollView)
         NSLayoutConstraint.activate([
             wv.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             wv.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             wv.topAnchor.constraint(equalTo: view.topAnchor),
-            wv.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            wv.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
         webView = wv
+        textScrollView = scrollView
+        textView = tv
+        showWebView()
+    }
+
+    func open(url: URL) {
+        fileURL = url
+        if !supportsMarkdownModeToggle {
+            markdownViewMode = .preview
+        }
+        hasUnsavedChanges = false
+        loadFile()
+        delegate?.previewViewControllerDidChangeFile(self)
     }
 
     func loadFile() {
@@ -58,16 +116,20 @@ class PreviewViewController: NSViewController, WKNavigationDelegate {
             case .preview:
                 loadMarkdown()
             case .source:
-                loadAsCode(ext: ext)
+                loadEditableText()
             }
-        case "html", "htm":
-            webView.loadFileURL(fileURL, allowingReadAccessTo: fileURL.deletingLastPathComponent())
-        case "pdf":
+        case "html", "htm", "pdf":
+            showWebView()
+            editableTextLoaded = false
+            hasUnsavedChanges = false
             webView.loadFileURL(fileURL, allowingReadAccessTo: fileURL.deletingLastPathComponent())
         case _ where isImageExtension(ext):
+            showWebView()
+            editableTextLoaded = false
+            hasUnsavedChanges = false
             webView.loadFileURL(fileURL, allowingReadAccessTo: fileURL.deletingLastPathComponent())
         default:
-            loadAsCode(ext: ext)
+            loadEditableText()
         }
     }
 
@@ -76,10 +138,48 @@ class PreviewViewController: NSViewController, WKNavigationDelegate {
         return ext == "md" || ext == "markdown"
     }
 
+    var isEditableTextLoaded: Bool {
+        return editableTextLoaded
+    }
+
+    var currentTextContents: String? {
+        if editableTextLoaded {
+            return textView.string
+        }
+        return try? String(contentsOf: fileURL, encoding: .utf8)
+    }
+
     func setMarkdownViewMode(_ mode: MarkdownViewMode) {
         guard supportsMarkdownModeToggle else { return }
         markdownViewMode = mode
         loadFile()
+    }
+
+    func saveIfNeeded() -> Bool {
+        guard hasUnsavedChanges else { return true }
+        return save()
+    }
+
+    func save() -> Bool {
+        guard editableTextLoaded else { return false }
+        do {
+            try textView.string.write(to: fileURL, atomically: true, encoding: .utf8)
+            hasUnsavedChanges = false
+            return true
+        } catch {
+            showAlert(title: "Could Not Save", message: error.localizedDescription)
+            return false
+        }
+    }
+
+    func discardUnsavedChanges() {
+        hasUnsavedChanges = false
+        loadFile()
+    }
+
+    func textDidChange(_ notification: Notification) {
+        guard !loadingText else { return }
+        hasUnsavedChanges = true
     }
 
     // MARK: - Markdown
@@ -90,11 +190,10 @@ class PreviewViewController: NSViewController, WKNavigationDelegate {
             return
         }
         guard let markedJS = loadBundledResource("marked.min.js") else {
-            loadAsCode(ext: "md")
+            loadEditableText()
             return
         }
 
-        // Embed markdown safely as a JSON string
         let jsonEncoded: String
         if let data = try? JSONEncoder().encode(markdown),
            let str = String(data: data, encoding: .utf8) {
@@ -123,45 +222,23 @@ class PreviewViewController: NSViewController, WKNavigationDelegate {
         </body>
         </html>
         """
+        showWebView()
+        editableTextLoaded = false
+        hasUnsavedChanges = false
         webView.loadHTMLString(html, baseURL: fileURL.deletingLastPathComponent())
     }
 
-    // MARK: - Code / Plain text
-
-    private func loadAsCode(ext: String) {
+    private func loadEditableText() {
         guard let content = try? String(contentsOf: fileURL, encoding: .utf8) else {
-            loadError("Could not read file.")
+            loadError("Could not read file as UTF-8 text.")
             return
         }
-        let escaped = content
-            .replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-
-        let html = """
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-        <meta charset="utf-8">
-        <meta name="color-scheme" content="light dark">
-        <style>
-        \(sharedCSS)
-        body { margin: 0; padding: 0; }
-        pre {
-            margin: 0;
-            padding: 24px;
-            min-height: 100vh;
-            overflow-x: auto;
-        }
-        code { background: none; padding: 0; border-radius: 0; }
-        </style>
-        </head>
-        <body>
-        <pre><code>\(escaped)</code></pre>
-        </body>
-        </html>
-        """
-        webView.loadHTMLString(html, baseURL: fileURL.deletingLastPathComponent())
+        showTextView()
+        loadingText = true
+        textView.string = content
+        loadingText = false
+        editableTextLoaded = true
+        hasUnsavedChanges = false
     }
 
     // MARK: - Images
@@ -181,7 +258,28 @@ class PreviewViewController: NSViewController, WKNavigationDelegate {
         <p>\(message)</p>
         </body></html>
         """
+        showWebView()
+        editableTextLoaded = false
+        hasUnsavedChanges = false
         webView.loadHTMLString(html, baseURL: nil)
+    }
+
+    private func showAlert(title: String, message: String) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.runModal()
+    }
+
+    private func showWebView() {
+        webView?.isHidden = false
+        textScrollView?.isHidden = true
+    }
+
+    private func showTextView() {
+        webView?.isHidden = true
+        textScrollView?.isHidden = false
     }
 
     // MARK: - Helpers
@@ -191,7 +289,6 @@ class PreviewViewController: NSViewController, WKNavigationDelegate {
            let str = try? String(contentsOf: url, encoding: .utf8) {
             return str
         }
-        // Fallback for dev: look next to the executable
         let devURL = Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/\(name)")
         return try? String(contentsOf: devURL, encoding: .utf8)
     }
