@@ -11,6 +11,34 @@ protocol PreviewViewControllerDelegate: AnyObject {
     func previewViewControllerDidChangeDirtyState(_ controller: PreviewViewController)
 }
 
+private class PlainTextView: NSTextView {
+    override func keyDown(with event: NSEvent) {
+        guard let character = event.charactersIgnoringModifiers?.lowercased() else {
+            super.keyDown(with: event)
+            return
+        }
+
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard flags.contains(.control) || flags.contains(.command) else {
+            super.keyDown(with: event)
+            return
+        }
+
+        switch character {
+        case "x":
+            cut(nil)
+        case "c":
+            copy(nil)
+        case "v":
+            paste(nil)
+        case "a":
+            selectAll(nil)
+        default:
+            super.keyDown(with: event)
+        }
+    }
+}
+
 class PreviewViewController: NSViewController, WKNavigationDelegate, NSTextViewDelegate {
 
     private(set) var fileURL: URL
@@ -62,7 +90,7 @@ class PreviewViewController: NSViewController, WKNavigationDelegate, NSTextViewD
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = true
         scrollView.autohidesScrollers = false
-        let tv = NSTextView(frame: scrollView.bounds)
+        let tv = PlainTextView(frame: scrollView.bounds)
         tv.autoresizingMask = [.width]
         tv.isRichText = false
         tv.isAutomaticQuoteSubstitutionEnabled = false
@@ -357,7 +385,11 @@ class PreviewViewController: NSViewController, WKNavigationDelegate, NSTextViewD
                 --tbl-bd: #3a3a3c;
             }
         }
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+            -webkit-user-select: text;
+            user-select: text;
+        }
         html { background: var(--bg); }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;

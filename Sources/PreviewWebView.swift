@@ -19,6 +19,46 @@ class PreviewWebView: WKWebView {
         registerForDraggedTypes([.fileURL])
     }
 
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        super.mouseDown(with: event)
+    }
+
+    override func keyDown(with event: NSEvent) {
+        guard handlesCopyShortcut(event) else {
+            super.keyDown(with: event)
+            return
+        }
+
+        copySelectedText()
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard handlesCopyShortcut(event) else {
+            return super.performKeyEquivalent(with: event)
+        }
+
+        copySelectedText()
+        return true
+    }
+
+    private func handlesCopyShortcut(_ event: NSEvent) -> Bool {
+        guard let character = event.charactersIgnoringModifiers?.lowercased(),
+              character == "c" else {
+            return false
+        }
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        return flags.contains(.command) || flags.contains(.control)
+    }
+
+    private func copySelectedText() {
+        evaluateJavaScript("window.getSelection ? window.getSelection().toString() : ''") { value, _ in
+            guard let selectedText = value as? String, !selectedText.isEmpty else { return }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(selectedText, forType: .string)
+        }
+    }
+
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         let hasFiles = sender.draggingPasteboard.canReadObject(forClasses: [NSURL.self],
                                                                options: [.urlReadingFileURLsOnly: true])
