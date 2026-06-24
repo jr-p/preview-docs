@@ -92,6 +92,7 @@ final class FileTreeSidebarViewController: NSViewController, NSOutlineViewDataSo
 
     private let outlineView = NSOutlineView()
     private let scrollView = NSScrollView()
+    private let pathBarView = NSVisualEffectView()
     private let pathScrollView = NSScrollView()
     private let pathStackView = NSStackView()
 
@@ -127,7 +128,12 @@ final class FileTreeSidebarViewController: NSViewController, NSOutlineViewDataSo
         pathStackView.orientation = .horizontal
         pathStackView.alignment = .centerY
         pathStackView.spacing = 4
-        pathStackView.edgeInsets = NSEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)
+        pathStackView.edgeInsets = NSEdgeInsets(top: 0, left: 8, bottom: 0, right: 8)
+
+        pathBarView.translatesAutoresizingMaskIntoConstraints = false
+        pathBarView.material = .sidebar
+        pathBarView.blendingMode = .withinWindow
+        pathBarView.state = .active
 
         pathScrollView.translatesAutoresizingMaskIntoConstraints = false
         pathScrollView.borderType = .noBorder
@@ -135,6 +141,7 @@ final class FileTreeSidebarViewController: NSViewController, NSOutlineViewDataSo
         pathScrollView.hasHorizontalScroller = true
         pathScrollView.hasVerticalScroller = false
         pathScrollView.autohidesScrollers = true
+        pathScrollView.scrollerStyle = .overlay
         pathScrollView.documentView = pathStackView
 
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("name"))
@@ -157,22 +164,28 @@ final class FileTreeSidebarViewController: NSViewController, NSOutlineViewDataSo
         scrollView.documentView = outlineView
 
         view.addSubview(toolbar)
-        view.addSubview(pathScrollView)
+        view.addSubview(pathBarView)
+        pathBarView.addSubview(pathScrollView)
         view.addSubview(scrollView)
         NSLayoutConstraint.activate([
             toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             toolbar.topAnchor.constraint(equalTo: view.topAnchor),
 
-            pathScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            pathScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            pathScrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            pathScrollView.heightAnchor.constraint(equalToConstant: 34),
+            pathBarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            pathBarView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            pathBarView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            pathBarView.heightAnchor.constraint(equalToConstant: 42),
+
+            pathScrollView.leadingAnchor.constraint(equalTo: pathBarView.leadingAnchor),
+            pathScrollView.trailingAnchor.constraint(equalTo: pathBarView.trailingAnchor),
+            pathScrollView.topAnchor.constraint(equalTo: pathBarView.topAnchor, constant: 4),
+            pathScrollView.bottomAnchor.constraint(equalTo: pathBarView.bottomAnchor, constant: -4),
 
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: pathScrollView.topAnchor)
+            scrollView.bottomAnchor.constraint(equalTo: pathBarView.topAnchor)
         ])
     }
 
@@ -251,8 +264,15 @@ final class FileTreeSidebarViewController: NSViewController, NSOutlineViewDataSo
             pathStackView.addArrangedSubview(pathButton(title: component.title, symbol: component.symbol, url: component.url))
         }
 
+        pathScrollView.layoutSubtreeIfNeeded()
         let size = pathStackView.fittingSize
-        pathStackView.frame = NSRect(x: 0, y: 0, width: max(size.width, pathScrollView.bounds.width), height: 34)
+        let contentHeight = max(size.height, pathScrollView.contentSize.height)
+        pathStackView.frame = NSRect(
+            x: 0,
+            y: 0,
+            width: max(size.width, pathScrollView.contentSize.width),
+            height: contentHeight
+        )
         pathScrollView.contentView.scroll(to: NSPoint(x: max(0, pathStackView.frame.width - pathScrollView.contentSize.width), y: 0))
         pathScrollView.reflectScrolledClipView(pathScrollView.contentView)
     }
